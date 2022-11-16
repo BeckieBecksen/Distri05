@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package Auction;
+option go_package = "https://github.com/BeckieBecksen/Distri05;Auction";
+
+
+service Ping {
+    rpc ping (Request) returns (Reply) {}
+}
+
+message Request {
+    int32 id = 1;
+    int32 amount = 2; 
+}
+
+message Reply {
+    int32 id = 1;
+    string response = 2;
+    int32 highestBid = 3;
+}
