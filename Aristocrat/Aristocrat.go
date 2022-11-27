@@ -20,7 +20,7 @@ import (
 var clientsName = flag.String("name", "5000", "Senders name")
 var serverPort = flag.String("server", "5400", "Tcp server")
 
-var server gRPC.PingClient      //the server
+var server gRPC.CommClient      //the server
 var ServerConn *grpc.ClientConn //the server connection
 var LTime = int32(0)
 
@@ -59,7 +59,7 @@ func ConnectToServer() {
 
 	// makes a client from the server connection and saves the connection
 	// and prints rather or not the connection was is READY
-	server = gRPC.NewPingClient(conn)
+	server = gRPC.NewCommClient(conn)
 	ServerConn = conn
 	log.Println("the connection is: ", conn.GetState().String())
 }
@@ -112,20 +112,20 @@ func readInput() {
 
 }
 
-func placeBid(bidAmount int32) {
+func placeBid(bidA int32) {
 
 	var stId, _ = strconv.ParseInt(string(*clientsName), 10, 32)
 	var myId = int32(stId)
 	fmt.Println(myId)
 
-	bid := gRPC.Request{
-		Id:       myId,
-		Amount:   bidAmount,
-		Lamptime: LTime,
+	bid := gRPC.BidAmount{
+		Id:        myId,
+		bidAmount: bidA,
+		Lamptime:  LTime,
 	}
 
 	//Make gRPC call to server with amount, and recieve acknowlegdement back.
-	ack, err := server.Ping(context.Background(), &bid)
+	ack, err := server.Bid(context.Background(), &bid)
 	//ack, err := server.updateWinningBid(context.Background(), &bid)
 
 	if err != nil {
@@ -139,6 +139,6 @@ func getStatus() {
 
 }
 
-func conReady(s gRPC.PingClient) bool {
+func conReady(s gRPC.CommClient) bool {
 	return ServerConn.GetState().String() == "READY"
 }
