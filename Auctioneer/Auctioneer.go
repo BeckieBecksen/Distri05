@@ -31,12 +31,12 @@ func main() {
 	// makes a new server instance using the name and port from the flags.
 	server := &Server{
 		port:          *port,
-		aristocrats:   make(map[string]*gRPC.PingClient),
+		aristocrats:   make(map[string]*gRPC.CommClient),
 		LampTime:      0,
 		WinningBidder: make(map[int32]int32, 1),
 	}
 
-	gRPC.RegisterPingServer(grpcServer, server) //Registers the server to the gRPC server.
+	gRPC.RegisterCommServer(grpcServer, server) //Registers the server to the gRPC server.
 	if err := grpcServer.Serve(list); err != nil {
 		log.Fatalf("failed to serve %v", err)
 	}
@@ -44,11 +44,12 @@ func main() {
 }
 
 type Server struct {
-	gRPC.UnimplementedPingServer                             // You need this line if you have a server struct
-	port                         string                      // Not required but useful if your server needs to know what port it's listening to
-	LampTime                     int64                       // the Lamport time of the server
-	aristocrats                  map[string]*gRPC.PingClient // map of streams
-	WinningBidder                map[int32]int32             //map of the winningbidder
+	gRPC.UnimplementedCommServer
+	port          string                      // Not required but useful if your server needs to know what port it's listening to
+	LampTime      int64                       // the Lamport time of the server
+	aristocrats   map[string]*gRPC.CommClient // map of streams
+	WinningBidder map[int32]int32             //map of the winningbidder
+	BidAmount     string
 }
 
 func join() {
