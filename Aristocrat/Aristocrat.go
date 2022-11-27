@@ -119,9 +119,9 @@ func placeBid(bidA int32) {
 	fmt.Println(myId)
 
 	bid := gRPC.BidAmount{
-		Id:        myId,
-		bidAmount: bidA,
-		Lamptime:  LTime,
+		Id:       myId,
+		Amount:   bidA,
+		Lamptime: LTime,
 	}
 
 	//Make gRPC call to server with amount, and recieve acknowlegdement back.
