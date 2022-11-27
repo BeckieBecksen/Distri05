@@ -5,7 +5,7 @@ option go_package = "https://github.com/BeckieBecksen/Distri05;Auction";
 
 
 service Bid {
-    rpc Bid (Bid) returns (Reply) {}
+    rpc Bid (BidAmount) returns (Reply) {}
 }
 
 service Status {

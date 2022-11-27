@@ -14,127 +14,174 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// PingClient is the client API for Ping service.
+// BidClient is the client API for Bid service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type PingClient interface {
-	Ping(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error)
-	updateWinningBid(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error)
+type BidClient interface {
+	Bid(ctx context.Context, in *BidAmount, opts ...grpc.CallOption) (*Reply, error)
 }
 
-type pingClient struct {
+type bidClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewPingClient(cc grpc.ClientConnInterface) PingClient {
-	return &pingClient{cc}
+func NewBidClient(cc grpc.ClientConnInterface) BidClient {
+	return &bidClient{cc}
 }
 
-func (c *pingClient) Ping(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error) {
+func (c *bidClient) Bid(ctx context.Context, in *BidAmount, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/Auction.Ping/ping", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Auction.Bid/Bid", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *pingClient) updateWinningBid(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error) {
-	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/Auction.Ping/updateWinningBid", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// PingServer is the server API for Ping service.
-// All implementations must embed UnimplementedPingServer
+// BidServer is the server API for Bid service.
+// All implementations must embed UnimplementedBidServer
 // for forward compatibility
-type PingServer interface {
-	Ping(context.Context, *Request) (*Reply, error)
-	updateWinningBid(context.Context, *Request) (*Reply, error)
-	mustEmbedUnimplementedPingServer()
+type BidServer interface {
+	Bid(context.Context, *BidAmount) (*Reply, error)
+	mustEmbedUnimplementedBidServer()
 }
 
-// UnimplementedPingServer must be embedded to have forward compatible implementations.
-type UnimplementedPingServer struct {
+// UnimplementedBidServer must be embedded to have forward compatible implementations.
+type UnimplementedBidServer struct {
 }
 
-func (UnimplementedPingServer) updateWinningBid(context.Context, *Request) (*Reply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method updateWinningBid not implemented")
+func (UnimplementedBidServer) Bid(context.Context, *BidAmount) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Bid not implemented")
 }
+func (UnimplementedBidServer) mustEmbedUnimplementedBidServer() {}
 
-func (UnimplementedPingServer) Ping(context.Context, *Request) (*Reply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
-}
-
-func (UnimplementedPingServer) mustEmbedUnimplementedPingServer() {}
-
-// UnsafePingServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to PingServer will
+// UnsafeBidServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to BidServer will
 // result in compilation errors.
-type UnsafePingServer interface {
-	mustEmbedUnimplementedPingServer()
+type UnsafeBidServer interface {
+	mustEmbedUnimplementedBidServer()
 }
 
-func RegisterPingServer(s grpc.ServiceRegistrar, srv PingServer) {
-	s.RegisterService(&Ping_ServiceDesc, srv)
+func RegisterBidServer(s grpc.ServiceRegistrar, srv BidServer) {
+	s.RegisterService(&Bid_ServiceDesc, srv)
 }
 
-func _Ping_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
+func _Bid_Bid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BidAmount)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PingServer).Ping(ctx, in)
+		return srv.(BidServer).Bid(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Auction.Ping/ping",
+		FullMethod: "/Auction.Bid/Bid",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PingServer).Ping(ctx, req.(*Request))
+		return srv.(BidServer).Bid(ctx, req.(*BidAmount))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Update_winning_Bid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PingServer).Ping(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/Auction.Ping/updateWinningBid",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PingServer).Ping(ctx, req.(*Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// Ping_ServiceDesc is the grpc.ServiceDesc for Ping service.
+// Bid_ServiceDesc is the grpc.ServiceDesc for Bid service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Ping_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "Auction.Ping",
-	HandlerType: (*PingServer)(nil),
+var Bid_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Auction.Bid",
+	HandlerType: (*BidServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ping",
-			Handler:    _Ping_Ping_Handler,
-		},{
-			MethodName: "updateWinningBid",
-			Handler:    _Update_winning_Bid_Handler,
+			MethodName: "Bid",
+			Handler:    _Bid_Bid_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "Auction/Auction.proto",
 }
 
+// StatusClient is the client API for Status service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type StatusClient interface {
+	Message(ctx context.Context, in *Request, opts ...grpc.CallOption) (*CurrentStatus, error)
+}
 
+type statusClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewStatusClient(cc grpc.ClientConnInterface) StatusClient {
+	return &statusClient{cc}
+}
+
+func (c *statusClient) Message(ctx context.Context, in *Request, opts ...grpc.CallOption) (*CurrentStatus, error) {
+	out := new(CurrentStatus)
+	err := c.cc.Invoke(ctx, "/Auction.Status/message", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// StatusServer is the server API for Status service.
+// All implementations must embed UnimplementedStatusServer
+// for forward compatibility
+type StatusServer interface {
+	Message(context.Context, *Request) (*CurrentStatus, error)
+	mustEmbedUnimplementedStatusServer()
+}
+
+// UnimplementedStatusServer must be embedded to have forward compatible implementations.
+type UnimplementedStatusServer struct {
+}
+
+func (UnimplementedStatusServer) Message(context.Context, *Request) (*CurrentStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Message not implemented")
+}
+func (UnimplementedStatusServer) mustEmbedUnimplementedStatusServer() {}
+
+// UnsafeStatusServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to StatusServer will
+// result in compilation errors.
+type UnsafeStatusServer interface {
+	mustEmbedUnimplementedStatusServer()
+}
+
+func RegisterStatusServer(s grpc.ServiceRegistrar, srv StatusServer) {
+	s.RegisterService(&Status_ServiceDesc, srv)
+}
+
+func _Status_Message_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StatusServer).Message(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Auction.Status/message",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StatusServer).Message(ctx, req.(*Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Status_ServiceDesc is the grpc.ServiceDesc for Status service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Status_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Auction.Status",
+	HandlerType: (*StatusServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "message",
+			Handler:    _Status_Message_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "Auction/Auction.proto",
+}
