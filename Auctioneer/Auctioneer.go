@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"time"
 
 	gRPC "github.com/BeckieBecksen/Distri05/Auction"
@@ -65,19 +66,29 @@ func AuctionEnd() {
 	fmt.Println("The Auction is over")
 }
 
-func (s *Server) Ping(ctx context.Context, req *gRPC.Request) (*gRPC.Reply, error) {
+func (s *Server) Bid(ctx context.Context, req *gRPC.BidAmount) (*gRPC.Reply, error) {
 	//if the
+	if len(s.WinningBidder) == 0 {
+		s.WinningBidder[req.Id] = req.Amount
+		fmt.Println("Client " + string(req.Id) + "'s bid has been accepted")
+		return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!"}, nil
+	}
 	for el := range s.WinningBidder {
-		if _, ok := s.WinningBidder[el]; ok || s.WinningBidder[el] > req.Amount {
+		if s.WinningBidder[el] < req.Amount {
 			delete(s.WinningBidder, el)
 			s.WinningBidder[req.Id] = req.Amount
+			fmt.Println("Client " + string(req.Id) + "'s bid has been accepted")
 			return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!"}, nil
 		} else {
-			fmt.Println("Client " + string(req.Id) + "'s bid has been denied")
+
+			if el == req.Id {
+				return &gRPC.Reply{Response: "You have already have the highest bid! at at whopping $" + strconv.Itoa(int(s.WinningBidder[el]))}, nil
+			}
+			fmt.Println("Client %v's bid has been denied", req.Id)
 			return &gRPC.Reply{Response: "Your bid was rejected, another Aristocrat currently has a higher bid"}, nil
 		}
 	}
-	return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!" + string(req.Id)}, nil
+	return &gRPC.Reply{Response: "Something went wrong"}, nil
 }
 
 func auctionStatus() {
