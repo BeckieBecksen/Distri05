@@ -64,7 +64,7 @@ func AuctionEnd() {
 	fmt.Println("The Auction is over")
 }
 
-func (s *Server) updateWinningBid(ctx context.Context, req gRPC.Request) (*gRPC.Reply, error) {
+func (s *Server) Ping(ctx context.Context, req *gRPC.Request) (*gRPC.Reply, error) {
 	//if the
 	for el := range s.WinningBidder {
 		if _, ok := s.WinningBidder[el]; ok || s.WinningBidder[el] > req.Amount {
@@ -76,7 +76,7 @@ func (s *Server) updateWinningBid(ctx context.Context, req gRPC.Request) (*gRPC.
 			return &gRPC.Reply{Response: "Your bid was rejected, another Aristocrat currently has a higher bid"}, nil
 		}
 	}
-	return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!"}, nil
+	return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!" + string(req.Id)}, nil
 }
 
 func auctionStatus() {

@@ -126,6 +126,7 @@ func placeBid(bidAmount int32) {
 
 	//Make gRPC call to server with amount, and recieve acknowlegdement back.
 	ack, err := server.Ping(context.Background(), &bid)
+	//ack, err := server.updateWinningBid(context.Background(), &bid)
 
 	if err != nil {
 		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)

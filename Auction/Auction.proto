@@ -4,11 +4,20 @@ package Auction;
 option go_package = "https://github.com/BeckieBecksen/Distri05;Auction";
 
 
-service Ping {
-    rpc ping (Request) returns (Reply) {}
+service Bid {
+    rpc Bid (Bid) returns (Reply) {}
+}
+
+service Status {
+    rpc message (Request) returns (CurrentStatus) {}
 }
 
 message Request {
+    int32 id = 1;
+    int32 Lamptime = 2;
+}
+
+message BidAmount{
     int32 id = 1;
     int32 amount = 2; 
     int32 Lamptime = 3;
@@ -20,4 +29,9 @@ message Reply {
     int32 highestBid = 3;
     int32 LampTime =4;
 }
-//recompile for lampTime
+
+message CurrentStatus{
+    string Comment = 1;
+    string outcome = 2;
+    int32 LampTime = 3;
+}

@@ -110,7 +110,7 @@ func _Update_winning_Bid_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Auction.Ping/UpdateWinningBid",
+		FullMethod: "/Auction.Ping/updateWinningBid",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PingServer).Ping(ctx, req.(*Request))
