@@ -21,7 +21,7 @@ var serverPort = flag.String("server", "5400", "Tcp server")
 
 var server gRPC.PingClient      //the server
 var ServerConn *grpc.ClientConn //the server connection
-var LTime = 0
+var LTime = int32(0)
 
 func main() {
 	//parse flag/arguments
@@ -116,13 +116,20 @@ func placeBid(bidAmount int32) {
 	var stId, _ = strconv.ParseInt(string(*clientsName), 10, 32)
 	var myId = int32(stId)
 	fmt.Println(myId)
-	/*
-		bid := gRPC.Request{
-			Id:       myId,
-			Amount:   bidAmount,
-			LampTime: LTime,
-		}
-	*/
+
+	bid := gRPC.Request{
+		Id:       myId,
+		Amount:   bidAmount,
+		Lamptime: LTime,
+	}
+
+	//Make gRPC call to server with amount, and recieve acknowlegdement back.
+	//ack, err := server.updateWinningBid(context.Background(), bid)
+	ack, err := server.updateWinningBid()
+	if err != nil {
+		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
+		log.Println(err)
+	}
 
 }
 

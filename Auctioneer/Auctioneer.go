@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -63,16 +64,19 @@ func AuctionEnd() {
 	fmt.Println("The Auction is over")
 }
 
-func updateWinningBid(bid int32, ClientId int32, s *Server) {
+func (s *Server) updateWinningBid(ctx context.Context, req gRPC.Request) (*gRPC.Reply, error) {
 	//if the
 	for el := range s.WinningBidder {
-		if _, ok := s.WinningBidder[el]; ok || s.WinningBidder[el] > bid {
+		if _, ok := s.WinningBidder[el]; ok || s.WinningBidder[el] > req.Amount {
 			delete(s.WinningBidder, el)
-			s.WinningBidder[ClientId] = bid
+			s.WinningBidder[req.Id] = req.Amount
+			return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!"}, nil
 		} else {
-			fmt.Println("Client " + string(ClientId) + "'s bid has been denied")
+			fmt.Println("Client " + string(req.Id) + "'s bid has been denied")
+			return &gRPC.Reply{Response: "Your bid was rejected, another Aristocrat currently has a higher bid"}, nil
 		}
 	}
+
 }
 
 func auctionStatus() {

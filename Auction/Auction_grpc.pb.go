@@ -19,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PingClient interface {
 	Ping(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error)
+	updateWinningBid(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error)
 }
 
 type pingClient struct {
@@ -32,6 +33,15 @@ func NewPingClient(cc grpc.ClientConnInterface) PingClient {
 func (c *pingClient) Ping(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
 	err := c.cc.Invoke(ctx, "/Auction.Ping/ping", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pingClient) updateWinningBid(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error) {
+	out := new(Reply)
+	err := c.cc.Invoke(ctx, "/Auction.Ping/updateWinningBid", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -99,3 +109,5 @@ var Ping_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "Auction/Auction.proto",
 }
+
+
