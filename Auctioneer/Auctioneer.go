@@ -76,7 +76,7 @@ func (s *Server) updateWinningBid(ctx context.Context, req gRPC.Request) (*gRPC.
 			return &gRPC.Reply{Response: "Your bid was rejected, another Aristocrat currently has a higher bid"}, nil
 		}
 	}
-
+	return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!"}, nil
 }
 
 func auctionStatus() {

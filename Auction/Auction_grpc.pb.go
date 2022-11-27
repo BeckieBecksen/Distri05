@@ -53,6 +53,7 @@ func (c *pingClient) updateWinningBid(ctx context.Context, in *Request, opts ...
 // for forward compatibility
 type PingServer interface {
 	Ping(context.Context, *Request) (*Reply, error)
+	updateWinningBid(context.Context, *Request) (*Reply, error)
 	mustEmbedUnimplementedPingServer()
 }
 
@@ -60,9 +61,14 @@ type PingServer interface {
 type UnimplementedPingServer struct {
 }
 
+func (UnimplementedPingServer) updateWinningBid(context.Context, *Request) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+
 func (UnimplementedPingServer) Ping(context.Context, *Request) (*Reply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
+
 func (UnimplementedPingServer) mustEmbedUnimplementedPingServer() {}
 
 // UnsafePingServer may be embedded to opt out of forward compatibility for this service.

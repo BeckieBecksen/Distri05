@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -124,13 +125,13 @@ func placeBid(bidAmount int32) {
 	}
 
 	//Make gRPC call to server with amount, and recieve acknowlegdement back.
-	//ack, err := server.updateWinningBid(context.Background(), bid)
-	ack, err := server.updateWinningBid()
+	ack, err := server.Ping(context.Background(), &bid)
+
 	if err != nil {
 		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
 		log.Println(err)
 	}
-
+	fmt.Println("the server says " + ack.Response)
 }
 
 func getStatus() {
