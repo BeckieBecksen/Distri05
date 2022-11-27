@@ -62,7 +62,7 @@ type UnimplementedPingServer struct {
 }
 
 func (UnimplementedPingServer) updateWinningBid(context.Context, *Request) (*Reply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+	return nil, status.Errorf(codes.Unimplemented, "method updateWinningBid not implemented")
 }
 
 func (UnimplementedPingServer) Ping(context.Context, *Request) (*Reply, error) {
@@ -100,6 +100,24 @@ func _Ping_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Update_winning_Bid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PingServer).Ping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Auction.Ping/UpdateWinningBid",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PingServer).Ping(ctx, req.(*Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Ping_ServiceDesc is the grpc.ServiceDesc for Ping service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -110,6 +128,9 @@ var Ping_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ping",
 			Handler:    _Ping_Ping_Handler,
+		},{
+			MethodName: "updateWinningBid",
+			Handler:    _Update_winning_Bid_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
