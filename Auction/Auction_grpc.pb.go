@@ -14,172 +14,122 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// BidClient is the client API for Bid service.
+// CommClient is the client API for Comm service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type BidClient interface {
+type CommClient interface {
 	Bid(ctx context.Context, in *BidAmount, opts ...grpc.CallOption) (*Reply, error)
+	Message(ctx context.Context, in *Request, opts ...grpc.CallOption) (*CurrentStatus, error)
 }
 
-type bidClient struct {
+type commClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewBidClient(cc grpc.ClientConnInterface) BidClient {
-	return &bidClient{cc}
+func NewCommClient(cc grpc.ClientConnInterface) CommClient {
+	return &commClient{cc}
 }
 
-func (c *bidClient) Bid(ctx context.Context, in *BidAmount, opts ...grpc.CallOption) (*Reply, error) {
+func (c *commClient) Bid(ctx context.Context, in *BidAmount, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/Auction.Bid/Bid", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Auction.comm/Bid", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// BidServer is the server API for Bid service.
-// All implementations must embed UnimplementedBidServer
+func (c *commClient) Message(ctx context.Context, in *Request, opts ...grpc.CallOption) (*CurrentStatus, error) {
+	out := new(CurrentStatus)
+	err := c.cc.Invoke(ctx, "/Auction.comm/message", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// CommServer is the server API for Comm service.
+// All implementations must embed UnimplementedCommServer
 // for forward compatibility
-type BidServer interface {
+type CommServer interface {
 	Bid(context.Context, *BidAmount) (*Reply, error)
-	mustEmbedUnimplementedBidServer()
+	Message(context.Context, *Request) (*CurrentStatus, error)
+	mustEmbedUnimplementedCommServer()
 }
 
-// UnimplementedBidServer must be embedded to have forward compatible implementations.
-type UnimplementedBidServer struct {
+// UnimplementedCommServer must be embedded to have forward compatible implementations.
+type UnimplementedCommServer struct {
 }
 
-func (UnimplementedBidServer) Bid(context.Context, *BidAmount) (*Reply, error) {
+func (UnimplementedCommServer) Bid(context.Context, *BidAmount) (*Reply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Bid not implemented")
 }
-func (UnimplementedBidServer) mustEmbedUnimplementedBidServer() {}
+func (UnimplementedCommServer) Message(context.Context, *Request) (*CurrentStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Message not implemented")
+}
+func (UnimplementedCommServer) mustEmbedUnimplementedCommServer() {}
 
-// UnsafeBidServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to BidServer will
+// UnsafeCommServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to CommServer will
 // result in compilation errors.
-type UnsafeBidServer interface {
-	mustEmbedUnimplementedBidServer()
+type UnsafeCommServer interface {
+	mustEmbedUnimplementedCommServer()
 }
 
-func RegisterBidServer(s grpc.ServiceRegistrar, srv BidServer) {
-	s.RegisterService(&Bid_ServiceDesc, srv)
+func RegisterCommServer(s grpc.ServiceRegistrar, srv CommServer) {
+	s.RegisterService(&Comm_ServiceDesc, srv)
 }
 
-func _Bid_Bid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Comm_Bid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BidAmount)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BidServer).Bid(ctx, in)
+		return srv.(CommServer).Bid(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Auction.Bid/Bid",
+		FullMethod: "/Auction.comm/Bid",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BidServer).Bid(ctx, req.(*BidAmount))
+		return srv.(CommServer).Bid(ctx, req.(*BidAmount))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Bid_ServiceDesc is the grpc.ServiceDesc for Bid service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var Bid_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "Auction.Bid",
-	HandlerType: (*BidServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "Bid",
-			Handler:    _Bid_Bid_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "Auction/Auction.proto",
-}
-
-// StatusClient is the client API for Status service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type StatusClient interface {
-	Message(ctx context.Context, in *Request, opts ...grpc.CallOption) (*CurrentStatus, error)
-}
-
-type statusClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewStatusClient(cc grpc.ClientConnInterface) StatusClient {
-	return &statusClient{cc}
-}
-
-func (c *statusClient) Message(ctx context.Context, in *Request, opts ...grpc.CallOption) (*CurrentStatus, error) {
-	out := new(CurrentStatus)
-	err := c.cc.Invoke(ctx, "/Auction.Status/message", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// StatusServer is the server API for Status service.
-// All implementations must embed UnimplementedStatusServer
-// for forward compatibility
-type StatusServer interface {
-	Message(context.Context, *Request) (*CurrentStatus, error)
-	mustEmbedUnimplementedStatusServer()
-}
-
-// UnimplementedStatusServer must be embedded to have forward compatible implementations.
-type UnimplementedStatusServer struct {
-}
-
-func (UnimplementedStatusServer) Message(context.Context, *Request) (*CurrentStatus, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Message not implemented")
-}
-func (UnimplementedStatusServer) mustEmbedUnimplementedStatusServer() {}
-
-// UnsafeStatusServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to StatusServer will
-// result in compilation errors.
-type UnsafeStatusServer interface {
-	mustEmbedUnimplementedStatusServer()
-}
-
-func RegisterStatusServer(s grpc.ServiceRegistrar, srv StatusServer) {
-	s.RegisterService(&Status_ServiceDesc, srv)
-}
-
-func _Status_Message_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Comm_Message_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StatusServer).Message(ctx, in)
+		return srv.(CommServer).Message(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Auction.Status/message",
+		FullMethod: "/Auction.comm/message",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StatusServer).Message(ctx, req.(*Request))
+		return srv.(CommServer).Message(ctx, req.(*Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Status_ServiceDesc is the grpc.ServiceDesc for Status service.
+// Comm_ServiceDesc is the grpc.ServiceDesc for Comm service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Status_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "Auction.Status",
-	HandlerType: (*StatusServer)(nil),
+var Comm_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Auction.comm",
+	HandlerType: (*CommServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "Bid",
+			Handler:    _Comm_Bid_Handler,
+		},
+		{
 			MethodName: "message",
-			Handler:    _Status_Message_Handler,
+			Handler:    _Comm_Message_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

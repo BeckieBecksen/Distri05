@@ -4,13 +4,12 @@ package Auction;
 option go_package = "https://github.com/BeckieBecksen/Distri05;Auction";
 
 
-service Bid {
+service comm {
     rpc Bid (BidAmount) returns (Reply) {}
-}
 
-service Status {
     rpc message (Request) returns (CurrentStatus) {}
 }
+
 
 message Request {
     int32 id = 1;
