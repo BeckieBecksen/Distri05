@@ -2,76 +2,134 @@ package main
 
 import (
 	"bufio"
-	"context"
+	"flag"
 	"fmt"
 	"log"
-	"net"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 
-	Auction "github.com/BeckieBecksen/Distri05/Auction"
+	gRPC "github.com/BeckieBecksen/Distri05/Auction"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
+// Same principle as in client. Flags allows for user specific arguments/values
+var clientsName = flag.String("name", "5000", "Senders name")
+var serverPort = flag.String("server", "5400", "Tcp server")
+
+var server gRPC.PingClient      //the server
+var ServerConn *grpc.ClientConn //the server connection
+var LTime = 0
+
 func main() {
-	//Selects the port for each user starting at 5000 with the argument 0
-	arg1, _ := strconv.ParseInt(os.Args[1], 10, 32)
-	ownPort := int32(arg1) + 5000
+	//parse flag/arguments
+	flag.Parse()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	//log to file instead of console
+	//f := setLog()
+	//defer f.Close()
 
-	p := &bid{
-		id: ownPort,
-		//map of Auctioneers
-		auctioneers: make(map[int32]Auction.PingServer),
-		ctx:         ctx,
-	}
+	//connect to server and close the connection when program closes
+	fmt.Println("--- join Server ---")
+	ConnectToServer()
+	defer ServerConn.Close()
 
-	// Create listener tcp on port ownPort
-	list, err := net.Listen("tcp", fmt.Sprintf(":%v", ownPort))
+	readInput()
+}
+
+// connect to server
+func ConnectToServer() {
+
+	//dial options
+	//the server is not using TLS, so we use insecure credentials
+	//(should be fine for local testing but not in the real world)
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	//dial the server, with the flag "server", to get a connection to it
+	log.Printf("client %s: Attempts to dial on port %s\n", *clientsName, *serverPort)
+	conn, err := grpc.Dial(fmt.Sprintf(":%s", *serverPort), opts...)
 	if err != nil {
-		log.Fatalf("Failed to listen on port: %v", err)
+		log.Printf("Fail to Dial : %v", err)
+		return
 	}
 
-	grpcServer := grpc.NewServer()
-	Auction.RegisterPingServer(grpcServer, p)
+	// makes a client from the server connection and saves the connection
+	// and prints rather or not the connection was is READY
+	server = gRPC.NewPingClient(conn)
+	ServerConn = conn
+	log.Println("the connection is: ", conn.GetState().String())
+}
 
-	go func() {
-		if err := grpcServer.Serve(list); err != nil {
-			log.Fatalf("failed to server %v", err)
-		}
-	}()
+func readInput() {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Welcome to the Auction!, Today we have a mystery item for sale, how much $$$ will thee bid?")
+	fmt.Println("--------------------------------------------------------------------------------------------")
 
-	//connects to all clients except self (maximum 3 clients)
-	for i := 0; i < 3; i++ {
-		port := int32(5000) + int32(i)
-		var conn *grpc.ClientConn
-		fmt.Printf("Trying to dial: %v\n", port)
-		conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithInsecure(), grpc.WithBlock())
+	//Infinite loop to listen for clients input.
+	for {
+		//Read input into var input and any errors into err
+		input, err := reader.ReadString('\n')
 		if err != nil {
-			log.Fatalf("Could not connect: %s", err)
+			log.Fatal(err)
 		}
-		defer conn.Close()
-		c := Auction.NewPingClient(conn)
-		p.auctioneers[port] = c
+		input = strings.TrimSpace(input) //Trim input
+
+		if !conReady(server) {
+			log.Printf("Client %s: something was wrong with the connection to the server :(", *clientsName)
+			continue
+		}
+
+		if len(input) >= 4 {
+			if strings.ToLower(input[0:4]) == "bid_" {
+				//use re for bid method
+				re := regexp.MustCompile("[0-9]+")
+				st := re.FindAllString(input, -1)
+				if st != nil {
+					s1 := string(st[0])
+					num, err := strconv.ParseInt(s1, 10, 32)
+					if err == nil {
+						placeBid(int32(num))
+					} else {
+						fmt.Println("please input a valid $$ bid")
+					}
+				} else {
+					fmt.Println("please input a valid $$ bid")
+				}
+			}
+
+			if len(input) >= 7 {
+				if strings.ToLower(input[0:7]) == "status_" {
+					getStatus()
+				}
+			}
+		}
+
 	}
 
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		Sendbid(1)
-	}
 }
 
-func Sendbid(bid int32) {
+func placeBid(bidAmount int32) {
+
+	var stId, _ = strconv.ParseInt(string(*clientsName), 10, 32)
+	var myId = int32(stId)
+	fmt.Println(myId)
+	/*
+		bid := gRPC.Request{
+			Id:       myId,
+			Amount:   bidAmount,
+			LampTime: LTime,
+		}
+	*/
 
 }
 
-type bid struct {
-	Auction.UnimplementedPingServer
-	id          int32
-	auctioneers map[int32]Auction.PingServer
-	ctx         context.Context
-	lampTime    int32
-	bidAmount   int32
+func getStatus() {
+
+}
+
+func conReady(s gRPC.PingClient) bool {
+	return ServerConn.GetState().String() == "READY"
 }

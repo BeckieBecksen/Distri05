@@ -11,10 +11,13 @@ service Ping {
 message Request {
     int32 id = 1;
     int32 amount = 2; 
+    int32 Lamptime = 3;
 }
 
 message Reply {
     int32 id = 1;
     string response = 2;
     int32 highestBid = 3;
+    int32 LampTime =4;
 }
+//recompile for lampTime

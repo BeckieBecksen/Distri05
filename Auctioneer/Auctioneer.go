@@ -5,21 +5,20 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	gRPC "github.com/BeckieBecksen/Distri05/Auction"
 	"google.golang.org/grpc"
 )
 
+var serverName = flag.String("name", "default", "Senders name")
 var port = flag.String("port", "5400", "Server port") // set with "-port <port>" in terminal
 
 func main() {
 
-	fmt.Printf("Attempts to create listener on port %s\n", *port)
-
-	// Create listener tcp on given port or default port 5400
 	list, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", *port))
 	if err != nil {
-		fmt.Printf("Failed to listen on port %s: %v", *port, err) //If it fails to listen on the port, run launchServer method again with the next value/port in ports array
+		log.Printf("Server %s: Failed to listen on port %s: %v", *serverName, *port, err) //If it fails to listen on the port, run launchServer method again with the next value/port in ports array
 		return
 	}
 
@@ -30,13 +29,13 @@ func main() {
 
 	// makes a new server instance using the name and port from the flags.
 	server := &Server{
-		port:     *port,
-		streams:  make(map[string]*gRPC.PingClient),
-		LampTime: 0,
+		port:          *port,
+		aristocrats:   make(map[string]*gRPC.PingClient),
+		LampTime:      0,
+		WinningBidder: make(map[int32]int32, 1),
 	}
 
 	gRPC.RegisterPingServer(grpcServer, server) //Registers the server to the gRPC server.
-
 	if err := grpcServer.Serve(list); err != nil {
 		log.Fatalf("failed to serve %v", err)
 	}
@@ -47,7 +46,7 @@ type Server struct {
 	gRPC.UnimplementedPingServer                             // You need this line if you have a server struct
 	port                         string                      // Not required but useful if your server needs to know what port it's listening to
 	LampTime                     int64                       // the Lamport time of the server
-	streams                      map[string]*gRPC.PingClient // map of streams
+	aristocrats                  map[string]*gRPC.PingClient // map of streams
 	WinningBidder                map[int32]int32             //map of the winningbidder
 }
 
@@ -55,12 +54,25 @@ func join() {
 
 }
 
-func startAuction() {
+func startAuction(minutes time.Duration) {
 	//after some ammount of time, end the auction
+	time.AfterFunc(minutes, AuctionEnd)
 }
 
-func updateWinningBid() {
-	//updates the current winning bidder
+func AuctionEnd() {
+	fmt.Println("The Auction is over")
+}
+
+func updateWinningBid(bid int32, ClientId int32, s *Server) {
+	//if the
+	for el := range s.WinningBidder {
+		if _, ok := s.WinningBidder[el]; ok || s.WinningBidder[el] > bid {
+			delete(s.WinningBidder, el)
+			s.WinningBidder[ClientId] = bid
+		} else {
+			fmt.Println("Client " + string(ClientId) + "'s bid has been denied")
+		}
+	}
 }
 
 func auctionStatus() {
