@@ -14,127 +14,124 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// PingClient is the client API for Ping service.
+// CommClient is the client API for Comm service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type PingClient interface {
-	Ping(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error)
-	updateWinningBid(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error)
+type CommClient interface {
+	Bid(ctx context.Context, in *BidAmount, opts ...grpc.CallOption) (*Reply, error)
+	Message(ctx context.Context, in *Request, opts ...grpc.CallOption) (*CurrentStatus, error)
 }
 
-type pingClient struct {
+type commClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewPingClient(cc grpc.ClientConnInterface) PingClient {
-	return &pingClient{cc}
+func NewCommClient(cc grpc.ClientConnInterface) CommClient {
+	return &commClient{cc}
 }
 
-func (c *pingClient) Ping(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error) {
+func (c *commClient) Bid(ctx context.Context, in *BidAmount, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/Auction.Ping/ping", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Auction.comm/Bid", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *pingClient) updateWinningBid(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Reply, error) {
-	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/Auction.Ping/updateWinningBid", in, out, opts...)
+func (c *commClient) Message(ctx context.Context, in *Request, opts ...grpc.CallOption) (*CurrentStatus, error) {
+	out := new(CurrentStatus)
+	err := c.cc.Invoke(ctx, "/Auction.comm/message", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// PingServer is the server API for Ping service.
-// All implementations must embed UnimplementedPingServer
+// CommServer is the server API for Comm service.
+// All implementations must embed UnimplementedCommServer
 // for forward compatibility
-type PingServer interface {
-	Ping(context.Context, *Request) (*Reply, error)
-	updateWinningBid(context.Context, *Request) (*Reply, error)
-	mustEmbedUnimplementedPingServer()
+type CommServer interface {
+	Bid(context.Context, *BidAmount) (*Reply, error)
+	Message(context.Context, *Request) (*CurrentStatus, error)
+	mustEmbedUnimplementedCommServer()
 }
 
-// UnimplementedPingServer must be embedded to have forward compatible implementations.
-type UnimplementedPingServer struct {
+// UnimplementedCommServer must be embedded to have forward compatible implementations.
+type UnimplementedCommServer struct {
 }
 
-func (UnimplementedPingServer) updateWinningBid(context.Context, *Request) (*Reply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method updateWinningBid not implemented")
+func (UnimplementedCommServer) Bid(context.Context, *BidAmount) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Bid not implemented")
 }
-
-func (UnimplementedPingServer) Ping(context.Context, *Request) (*Reply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+func (UnimplementedCommServer) Message(context.Context, *Request) (*CurrentStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Message not implemented")
 }
+func (UnimplementedCommServer) mustEmbedUnimplementedCommServer() {}
 
-func (UnimplementedPingServer) mustEmbedUnimplementedPingServer() {}
-
-// UnsafePingServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to PingServer will
+// UnsafeCommServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to CommServer will
 // result in compilation errors.
-type UnsafePingServer interface {
-	mustEmbedUnimplementedPingServer()
+type UnsafeCommServer interface {
+	mustEmbedUnimplementedCommServer()
 }
 
-func RegisterPingServer(s grpc.ServiceRegistrar, srv PingServer) {
-	s.RegisterService(&Ping_ServiceDesc, srv)
+func RegisterCommServer(s grpc.ServiceRegistrar, srv CommServer) {
+	s.RegisterService(&Comm_ServiceDesc, srv)
 }
 
-func _Ping_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Comm_Bid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BidAmount)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommServer).Bid(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Auction.comm/Bid",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommServer).Bid(ctx, req.(*BidAmount))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Comm_Message_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PingServer).Ping(ctx, in)
+		return srv.(CommServer).Message(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Auction.Ping/ping",
+		FullMethod: "/Auction.comm/message",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PingServer).Ping(ctx, req.(*Request))
+		return srv.(CommServer).Message(ctx, req.(*Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Update_winning_Bid_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PingServer).Ping(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/Auction.Ping/UpdateWinningBid",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PingServer).Ping(ctx, req.(*Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// Ping_ServiceDesc is the grpc.ServiceDesc for Ping service.
+// Comm_ServiceDesc is the grpc.ServiceDesc for Comm service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Ping_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "Auction.Ping",
-	HandlerType: (*PingServer)(nil),
+var Comm_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Auction.comm",
+	HandlerType: (*CommServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ping",
-			Handler:    _Ping_Ping_Handler,
-		},{
-			MethodName: "updateWinningBid",
-			Handler:    _Update_winning_Bid_Handler,
+			MethodName: "Bid",
+			Handler:    _Comm_Bid_Handler,
+		},
+		{
+			MethodName: "message",
+			Handler:    _Comm_Message_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "Auction/Auction.proto",
 }
-
-
