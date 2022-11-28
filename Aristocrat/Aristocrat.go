@@ -17,7 +17,6 @@ import (
 
 var myPort int64
 
-var server gRPC.CommClient      //the server
 var ServerConn *grpc.ClientConn //the server connection
 
 func main() {
@@ -131,7 +130,7 @@ func (a *Aristocrat) placeBid(bidA int32) {
 
 	a.LampTime += firstresponse.LampTime + 1
 
-	fmt.Println("Auctioneer " + string(firstresponse.Id) + " says " + firstresponse.Response)
+	fmt.Println("Auctioneer " + strconv.Itoa(int(firstresponse.Id)) + " says " + firstresponse.Response)
 }
 
 func checkBidResponse(cx context.Context, b *gRPC.BidAmount, channel chan *gRPC.Reply, AuctioneerConn gRPC.CommClient) {
@@ -165,6 +164,6 @@ func (a *Aristocrat) getStatus() {
 	}
 
 	firstresp := <-cha
-	fmt.Println("Auctioneer x says " + firstresp.Comment)
+	fmt.Println("Auctioneer " + strconv.Itoa(int(firstresp.Id)) + " says " + firstresp.Comment)
 	a.LampTime++
 }

@@ -33,4 +33,5 @@ message CurrentStatus{
     string Comment = 1;
     string outcome = 2;
     int32 LampTime = 3;
+    int32 id = 4;
 }
