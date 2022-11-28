@@ -11,18 +11,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/BeckieBecksen/Distri05/Auction"
 	gRPC "github.com/BeckieBecksen/Distri05/Auction"
 	"google.golang.org/grpc"
 )
 
-// Flags allows for user specific arguments/values
-var clientsName = flag.String("name", "5000", "Senders name")
 var myPort int64
 
 var server gRPC.CommClient      //the server
 var ServerConn *grpc.ClientConn //the server connection
-var LTime = int32(0)
 
 func main() {
 	//parse flag/arguments
@@ -57,7 +53,7 @@ func ConnectToServer() {
 			log.Fatalf("Could not connect: %s", err)
 		}
 		defer conn.Close()
-		c := Auction.NewCommClient(conn)
+		c := gRPC.NewCommClient(conn)
 		a.Auctioneers[port] = c
 	}
 
@@ -127,15 +123,13 @@ func (a *Aristocrat) placeBid(bidA int32) {
 	c := make(chan *gRPC.Reply)
 
 	//calls all serves and gets first reply
-	for id, neer := range a.Auctioneers {
-		//ack, err := server.Bid(a.ctx, &bid)
+	for _, neer := range a.Auctioneers {
 		go checkBidResponse(a.ctx, &bid, c, neer)
-		fmt.Println(id)
 	}
 
 	firstresponse := <-c
 
-	LTime += firstresponse.LampTime + 1
+	a.LampTime += firstresponse.LampTime + 1
 
 	fmt.Println("Auctioneer " + string(firstresponse.Id) + " says " + firstresponse.Response)
 }
@@ -147,26 +141,30 @@ func checkBidResponse(cx context.Context, b *gRPC.BidAmount, channel chan *gRPC.
 	}
 }
 
+func checkStatusResponse(cx context.Context, r *gRPC.Request, channel2 chan *gRPC.CurrentStatus, AuctioneerConn gRPC.CommClient) {
+	ack, _ := AuctioneerConn.Message(cx, r)
+	if ack != nil {
+		channel2 <- ack
+	}
+}
+
 func (a *Aristocrat) getStatus() {
 	var stId, _ = strconv.ParseInt(string(a.id), 10, 32)
 	var myId = int32(stId)
 	fmt.Println(myId)
 
-	LTime++
+	cha := make(chan *gRPC.CurrentStatus)
+
 	status := gRPC.Request{
 		Id:       myId,
-		Lamptime: LTime,
+		Lamptime: a.LampTime,
 	}
-	ack, err := server.Message(context.Background(), &status)
-	if err != nil {
-		log.Printf("Client %v: no response from the server, attempting to reconnect", a.id)
-		log.Println(err)
+
+	for _, neer := range a.Auctioneers {
+		go checkStatusResponse(a.ctx, &status, cha, neer)
 	}
-	LTime += ack.LampTime + 1
 
-	fmt.Println(ack.Comment)
-}
-
-func conReady(s gRPC.CommClient) bool {
-	return ServerConn.GetState().String() == "READY"
+	firstresp := <-cha
+	fmt.Println("Auctioneer x says " + firstresp.Comment)
+	a.LampTime++
 }

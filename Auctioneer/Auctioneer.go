@@ -86,7 +86,6 @@ func (s *Server) Bid(ctx context.Context, req *gRPC.BidAmount) (*gRPC.Reply, err
 				fmt.Println("Client %v\n's bid has been accepted", req.Id)
 				return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!", LampTime: LTime}, nil
 			} else {
-
 				if el == req.Id {
 					return &gRPC.Reply{Response: "You have already have the highest bid! at at whopping $" + strconv.Itoa(int(s.WinningBidder[el])), LampTime: LTime}, nil
 				}
