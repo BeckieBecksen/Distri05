@@ -28,10 +28,6 @@ func main() {
 	//parse flag/arguments
 	flag.Parse()
 
-	//log to file instead of console
-	//f := setLog()
-	//defer f.Close()
-
 	//connect to server and close the connection when program closes
 	fmt.Println("--- join Server ---")
 	ConnectToServer()
@@ -133,6 +129,7 @@ func placeBid(bidA int32) {
 		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
 		log.Println(err)
 	}
+	LTime += ack.LampTime + 1
 	//add output queue
 	fmt.Println("the server says " + ack.Response)
 }
@@ -152,6 +149,7 @@ func getStatus() {
 		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
 		log.Println(err)
 	}
+	LTime += ack.LampTime + 1
 	//add output queue
 	fmt.Println(ack.Comment)
 }
