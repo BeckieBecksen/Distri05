@@ -4,6 +4,9 @@ This is a distributed auction system that uses replication, and is resilient to 
 
 ## How to start the sytem
 
+You start the system by opening 3 terminals, and running the `Auctioneer.go` program on all three terminals.
+They take their ID as commandline argument, and the ID needs to increase sequencialy, starting from 0.
+
 ## How to operate the system
 
 ## Authors
