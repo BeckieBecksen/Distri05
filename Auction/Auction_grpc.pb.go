@@ -41,7 +41,7 @@ func (c *commClient) Bid(ctx context.Context, in *BidAmount, opts ...grpc.CallOp
 
 func (c *commClient) Message(ctx context.Context, in *Request, opts ...grpc.CallOption) (*CurrentStatus, error) {
 	out := new(CurrentStatus)
-	err := c.cc.Invoke(ctx, "/Auction.comm/message", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Auction.comm/Message", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func _Comm_Message_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Auction.comm/message",
+		FullMethod: "/Auction.comm/Message",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CommServer).Message(ctx, req.(*Request))
@@ -128,7 +128,7 @@ var Comm_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Comm_Bid_Handler,
 		},
 		{
-			MethodName: "message",
+			MethodName: "Message",
 			Handler:    _Comm_Message_Handler,
 		},
 	},

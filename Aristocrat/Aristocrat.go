@@ -102,7 +102,8 @@ func readInput() {
 			}
 
 			if len(input) >= 7 {
-				if strings.ToLower(input[0:7]) == "status_" {
+				if strings.ToLower(input[0:]) == "status_" {
+
 					getStatus()
 				}
 			}
@@ -117,7 +118,7 @@ func placeBid(bidA int32) {
 	var stId, _ = strconv.ParseInt(string(*clientsName), 10, 32)
 	var myId = int32(stId)
 	fmt.Println(myId)
-
+	LTime++
 	bid := gRPC.BidAmount{
 		Id:       myId,
 		Amount:   bidA,
@@ -132,11 +133,27 @@ func placeBid(bidA int32) {
 		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
 		log.Println(err)
 	}
+	//add output queue
 	fmt.Println("the server says " + ack.Response)
 }
 
 func getStatus() {
+	var stId, _ = strconv.ParseInt(string(*clientsName), 10, 32)
+	var myId = int32(stId)
+	fmt.Println(myId)
 
+	LTime++
+	status := gRPC.Request{
+		Id:       myId,
+		Lamptime: LTime,
+	}
+	ack, err := server.Message(context.Background(), &status)
+	if err != nil {
+		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
+		log.Println(err)
+	}
+	//add output queue
+	fmt.Println(ack.Comment)
 }
 
 func conReady(s gRPC.CommClient) bool {

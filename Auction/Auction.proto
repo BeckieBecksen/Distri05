@@ -1,13 +1,13 @@
 syntax = "proto3";
 
 package Auction;
-option go_package = "https://github.com/BeckieBecksen/Distri05;Auction";
+option go_package = "https://github.com/BeckieBecksen/Distri05/Auction";
 
 
 service comm {
     rpc Bid (BidAmount) returns (Reply) {}
 
-    rpc message (Request) returns (CurrentStatus) {}
+    rpc Message (Request) returns (CurrentStatus) {}
 }
 
 

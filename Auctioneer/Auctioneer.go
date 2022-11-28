@@ -50,47 +50,63 @@ type Server struct {
 	LampTime      int64                       // the Lamport time of the server
 	aristocrats   map[string]*gRPC.CommClient // map of streams
 	WinningBidder map[int32]int32             //map of the winningbidder
-	BidAmount     string
 }
 
 func join() {
-
+	//add the users to a map
 }
 
-func startAuction(minutes time.Duration) {
+var AuctionStatus = true
+
+func AuctionTime(minutes time.Duration) {
 	//after some ammount of time, end the auction
 	time.AfterFunc(minutes, AuctionEnd)
 }
 
 func AuctionEnd() {
-	fmt.Println("The Auction is over")
+	AuctionStatus = false
 }
 
 func (s *Server) Bid(ctx context.Context, req *gRPC.BidAmount) (*gRPC.Reply, error) {
-	//if the
 	if len(s.WinningBidder) == 0 {
 		s.WinningBidder[req.Id] = req.Amount
-		fmt.Println("Client " + string(req.Id) + "'s bid has been accepted")
+		fmt.Println("Client %v\n's bid has been accepted", req.Id)
 		return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!"}, nil
 	}
 	for el := range s.WinningBidder {
 		if s.WinningBidder[el] < req.Amount {
 			delete(s.WinningBidder, el)
 			s.WinningBidder[req.Id] = req.Amount
-			fmt.Println("Client " + string(req.Id) + "'s bid has been accepted")
+			fmt.Println("Client %v\n's bid has been accepted", req.Id)
 			return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!"}, nil
 		} else {
 
 			if el == req.Id {
 				return &gRPC.Reply{Response: "You have already have the highest bid! at at whopping $" + strconv.Itoa(int(s.WinningBidder[el]))}, nil
 			}
-			fmt.Println("Client %v's bid has been denied", req.Id)
+			fmt.Println("Client %v\n's bid has been denied", req.Id)
 			return &gRPC.Reply{Response: "Your bid was rejected, another Aristocrat currently has a higher bid"}, nil
 		}
 	}
 	return &gRPC.Reply{Response: "Something went wrong"}, nil
 }
 
-func auctionStatus() {
+func (s *Server) Message(ctx context.Context, reqStat *gRPC.Request) (*gRPC.CurrentStatus, error) {
 	//returns a message of the status of the auction
+	if AuctionStatus {
+		if len(s.WinningBidder) == 0 {
+			return &gRPC.CurrentStatus{Comment: "The Auction is still running! Noone has bid yet!"}, nil
+		}
+		for el := range s.WinningBidder {
+			if el == reqStat.Id {
+				return &gRPC.CurrentStatus{Comment: "The Auction is still running! You have the highest bid with $" + strconv.Itoa(int(s.WinningBidder[el]))}, nil
+
+			}
+			return &gRPC.CurrentStatus{Comment: "The Auction is still running! The Highest Bid is $" + strconv.Itoa(int(s.WinningBidder[el]))}, nil
+		}
+	}
+	for el := range s.WinningBidder {
+		return &gRPC.CurrentStatus{Comment: "The Auction is over! The new owner is " + strconv.Itoa(int(el))}, nil
+	}
+	return &gRPC.CurrentStatus{Comment: "The Auction is over! noone vlaimed the item!"}, nil
 }
