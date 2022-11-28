@@ -53,19 +53,17 @@ type Server struct {
 	WinningBidder map[int32]int32             //map of the winningbidder
 }
 
-func join() {
-	//add the users to a map
-}
-
 var AuctionStatus = true
 
-func AuctionStartTime(minutes time.Duration) {
+func AuctionStartTime() {
 	//after some ammount of time, end the auction
-	time.AfterFunc(minutes, AuctionEnd)
+	time.AfterFunc(time.Duration(time.Minute)*1, AuctionEnd)
+
 }
 
 func AuctionEnd() {
 	AuctionStatus = false
+	fmt.Print("the Auction is over")
 }
 
 func (s *Server) Bid(ctx context.Context, req *gRPC.BidAmount) (*gRPC.Reply, error) {
@@ -73,7 +71,7 @@ func (s *Server) Bid(ctx context.Context, req *gRPC.BidAmount) (*gRPC.Reply, err
 	if AuctionStatus {
 		if len(s.WinningBidder) == 0 {
 			//first bidder starts the timer of 1 minute
-			AuctionStartTime(1)
+			AuctionStartTime()
 			s.WinningBidder[req.Id] = req.Amount
 			fmt.Println("Client %v\n's bid has been accepted", req.Id)
 			return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!", LampTime: LTime}, nil
