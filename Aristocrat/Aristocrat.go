@@ -18,6 +18,7 @@ import (
 
 // Flags allows for user specific arguments/values
 var clientsName = flag.String("name", "5000", "Senders name")
+var myPort int64
 
 var server gRPC.CommClient      //the server
 var ServerConn *grpc.ClientConn //the server connection
@@ -26,6 +27,8 @@ var LTime = int32(0)
 func main() {
 	//parse flag/arguments
 	flag.Parse()
+	Port, _ := strconv.ParseInt(os.Args[1], 10, 32)
+	myPort = Port
 
 	//connect to server and close the connection when program closes
 	fmt.Println("--- join Server ---")
@@ -36,14 +39,14 @@ func main() {
 
 // connect to server
 func ConnectToServer() {
-	arg1, _ := strconv.ParseInt(os.Args[1], 10, 32)
 
 	a := &Aristocrat{
-		id:          int32(arg1) + 5000,
+		id:          int32(myPort) + 5000,
 		Auctioneers: make(map[int32]gRPC.CommClient),
 		ctx:         context.Background(),
+		LampTime:    0,
 	}
-
+	fmt.Print(a.id)
 	for i := 0; i < 3; i++ {
 		port := int32(5400) + int32(i)
 
@@ -66,6 +69,7 @@ type Aristocrat struct {
 	id          int32
 	Auctioneers map[int32]gRPC.CommClient
 	ctx         context.Context
+	LampTime    int32
 }
 
 func (a *Aristocrat) readInput() {
@@ -113,14 +117,11 @@ func (a *Aristocrat) readInput() {
 }
 
 func (a *Aristocrat) placeBid(bidA int32) {
-	var stId, _ = strconv.ParseInt(string(*clientsName), 10, 32)
-	var myId = int32(stId)
-	fmt.Println(myId)
-	LTime++
+	a.LampTime++
 	bid := gRPC.BidAmount{
-		Id:       myId,
+		Id:       a.id,
 		Amount:   bidA,
-		Lamptime: LTime,
+		Lamptime: a.LampTime,
 	}
 
 	c := make(chan *gRPC.Reply)
@@ -128,7 +129,7 @@ func (a *Aristocrat) placeBid(bidA int32) {
 	//calls all serves and gets first reply
 	for id, neer := range a.Auctioneers {
 		//ack, err := server.Bid(a.ctx, &bid)
-		go checkResponse(a.ctx, &bid, c, neer)
+		go checkBidResponse(a.ctx, &bid, c, neer)
 		fmt.Println(id)
 	}
 
@@ -139,7 +140,7 @@ func (a *Aristocrat) placeBid(bidA int32) {
 	fmt.Println("Auctioneer " + string(firstresponse.Id) + " says " + firstresponse.Response)
 }
 
-func checkResponse(cx context.Context, b *gRPC.BidAmount, channel chan *gRPC.Reply, AuctioneerConn gRPC.CommClient) {
+func checkBidResponse(cx context.Context, b *gRPC.BidAmount, channel chan *gRPC.Reply, AuctioneerConn gRPC.CommClient) {
 	ack, _ := AuctioneerConn.Bid(cx, b)
 	if ack != nil {
 		channel <- ack
@@ -147,7 +148,7 @@ func checkResponse(cx context.Context, b *gRPC.BidAmount, channel chan *gRPC.Rep
 }
 
 func (a *Aristocrat) getStatus() {
-	var stId, _ = strconv.ParseInt(string(*clientsName), 10, 32)
+	var stId, _ = strconv.ParseInt(string(a.id), 10, 32)
 	var myId = int32(stId)
 	fmt.Println(myId)
 
@@ -158,11 +159,11 @@ func (a *Aristocrat) getStatus() {
 	}
 	ack, err := server.Message(context.Background(), &status)
 	if err != nil {
-		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
+		log.Printf("Client %v: no response from the server, attempting to reconnect", a.id)
 		log.Println(err)
 	}
 	LTime += ack.LampTime + 1
-	//add output queue
+
 	fmt.Println(ack.Comment)
 }
 
