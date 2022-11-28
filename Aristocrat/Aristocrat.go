@@ -55,9 +55,17 @@ func ConnectToServer() {
 
 	// makes a client from the server connection and saves the connection
 	// and prints rather or not the connection was is READY
+
 	server = gRPC.NewCommClient(conn)
 	ServerConn = conn
 	log.Println("the connection is: ", conn.GetState().String())
+}
+
+type Aristocrat struct {
+	gRPC.UnimplementedCommServer
+	id      int32
+	Servers map[int32]gRPC.CommClient
+	ctx     context.Context
 }
 
 func readInput() {

@@ -59,7 +59,7 @@ func join() {
 
 var AuctionStatus = true
 
-func AuctionTime(minutes time.Duration) {
+func AuctionStartTime(minutes time.Duration) {
 	//after some ammount of time, end the auction
 	time.AfterFunc(minutes, AuctionEnd)
 }
@@ -70,27 +70,32 @@ func AuctionEnd() {
 
 func (s *Server) Bid(ctx context.Context, req *gRPC.BidAmount) (*gRPC.Reply, error) {
 	LTime += req.Lamptime + 1
-	if len(s.WinningBidder) == 0 {
-		s.WinningBidder[req.Id] = req.Amount
-		fmt.Println("Client %v\n's bid has been accepted", req.Id)
-		return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!", LampTime: LTime}, nil
-	}
-	for el := range s.WinningBidder {
-		if s.WinningBidder[el] < req.Amount {
-			delete(s.WinningBidder, el)
+	if AuctionStatus {
+		if len(s.WinningBidder) == 0 {
+			//first bidder starts the timer of 1 minute
+			AuctionStartTime(1)
 			s.WinningBidder[req.Id] = req.Amount
 			fmt.Println("Client %v\n's bid has been accepted", req.Id)
 			return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!", LampTime: LTime}, nil
-		} else {
-
-			if el == req.Id {
-				return &gRPC.Reply{Response: "You have already have the highest bid! at at whopping $" + strconv.Itoa(int(s.WinningBidder[el])), LampTime: LTime}, nil
-			}
-			fmt.Println("Client %v\n's bid has been denied", req.Id)
-			return &gRPC.Reply{Response: "Your bid was rejected, another Aristocrat currently has a higher bid", LampTime: LTime}, nil
 		}
+		for el := range s.WinningBidder {
+			if s.WinningBidder[el] < req.Amount {
+				delete(s.WinningBidder, el)
+				s.WinningBidder[req.Id] = req.Amount
+				fmt.Println("Client %v\n's bid has been accepted", req.Id)
+				return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!", LampTime: LTime}, nil
+			} else {
+
+				if el == req.Id {
+					return &gRPC.Reply{Response: "You have already have the highest bid! at at whopping $" + strconv.Itoa(int(s.WinningBidder[el])), LampTime: LTime}, nil
+				}
+				fmt.Println("Client %v\n's bid has been denied", req.Id)
+				return &gRPC.Reply{Response: "Your bid was rejected, another Aristocrat currently has a higher bid", LampTime: LTime}, nil
+			}
+		}
+		return &gRPC.Reply{Response: "Something went wrong"}, nil
 	}
-	return &gRPC.Reply{Response: "Something went wrong"}, nil
+	return &gRPC.Reply{Response: "The auction is over!"}, nil
 }
 
 func (s *Server) Message(ctx context.Context, reqStat *gRPC.Request) (*gRPC.CurrentStatus, error) {
