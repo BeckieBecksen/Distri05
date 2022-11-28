@@ -136,7 +136,7 @@ func (s *Server) Message(ctx context.Context, reqStat *gRPC.Request) (*gRPC.Curr
 		}
 	}
 	for el := range s.WinningBidder {
-		fmt.Println(fmt.Sprint(reqStat.Id) + " requested the Auction status, the auction has ended, the winner is " + strconv.Itoa(int(s.WinningBidder[el])) + " [" + time.Now().Local().Format(time.Stamp) + "]")
+		fmt.Println(fmt.Sprint(reqStat.Id) + " requested the Auction status, Ended: the winner is " + strconv.Itoa(int(el)) + " [" + time.Now().Local().Format(time.Stamp) + "]")
 		return &gRPC.CurrentStatus{Comment: "The Auction is over! The new owner is " + strconv.Itoa(int(el)), LampTime: LTime, Id: int32(AuctioneerId)}, nil
 	}
 
