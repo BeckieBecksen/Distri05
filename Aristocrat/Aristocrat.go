@@ -10,65 +10,67 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	gRPC "github.com/BeckieBecksen/Distri05/Auction"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
-// Same principle as in client. Flags allows for user specific arguments/values
-var clientsName = flag.String("name", "5000", "Senders name")
-var serverPort = flag.String("server", "5400", "Tcp server")
+var myPort int64
 
-var server gRPC.CommClient      //the server
 var ServerConn *grpc.ClientConn //the server connection
-var LTime = int32(0)
 
 func main() {
 	//parse flag/arguments
 	flag.Parse()
+	Port, _ := strconv.ParseInt(os.Args[1], 10, 32)
+	myPort = Port
 
 	//connect to server and close the connection when program closes
 	fmt.Println("--- join Server ---")
 	ConnectToServer()
 	defer ServerConn.Close()
 
-	readInput()
 }
 
 // connect to server
 func ConnectToServer() {
 
-	//dial options
-	//the server is not using TLS, so we use insecure credentials
-	//(should be fine for local testing but not in the real world)
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-
-	//dial the server, with the flag "server", to get a connection to it
-	log.Printf("client %s: Attempts to dial on port %s\n", *clientsName, *serverPort)
-	conn, err := grpc.Dial(fmt.Sprintf(":%s", *serverPort), opts...)
-	if err != nil {
-		log.Printf("Fail to Dial : %v", err)
-		return
+	a := &Aristocrat{
+		id:          int32(myPort) + 5000,
+		Auctioneers: make(map[int32]gRPC.CommClient),
+		ctx:         context.Background(),
+		LampTime:    0,
 	}
 
-	// makes a client from the server connection and saves the connection
-	// and prints rather or not the connection was is READY
+	fmt.Println(a.id)
 
-	server = gRPC.NewCommClient(conn)
-	ServerConn = conn
-	log.Println("the connection is: ", conn.GetState().String())
+	for i := 0; i < 3; i++ {
+		port := int32(5400) + int32(i)
+
+		var conn *grpc.ClientConn
+		fmt.Printf("Trying to dial: %v\n", port)
+		conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithInsecure(), grpc.WithBlock())
+		if err != nil {
+			log.Fatalf("Could not connect: %s", err)
+		}
+		defer conn.Close()
+		c := gRPC.NewCommClient(conn)
+		a.Auctioneers[port] = c
+	}
+
+	a.readInput()
 }
 
 type Aristocrat struct {
 	gRPC.UnimplementedCommServer
-	id      int32
-	Servers map[int32]gRPC.CommClient
-	ctx     context.Context
+	id          int32
+	Auctioneers map[int32]gRPC.CommClient
+	ctx         context.Context
+	LampTime    int32
 }
 
-func readInput() {
+func (a *Aristocrat) readInput() {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Welcome to the Auction!, Today we have a mystery item for sale, how much $$$ will thee bid?")
 	fmt.Println("--------------------------------------------------------------------------------------------")
@@ -82,11 +84,6 @@ func readInput() {
 		}
 		input = strings.TrimSpace(input) //Trim input
 
-		if !conReady(server) {
-			log.Printf("Client %s: something was wrong with the connection to the server :(", *clientsName)
-			continue
-		}
-
 		if len(input) >= 4 {
 			if strings.ToLower(input[0:4]) == "bid_" {
 				//use re for bid method
@@ -96,19 +93,23 @@ func readInput() {
 					s1 := string(st[0])
 					num, err := strconv.ParseInt(s1, 10, 32)
 					if err == nil {
-						placeBid(int32(num))
+						if num > 0 {
+							a.placeBid(int32(num))
+						} else {
+							fmt.Println("please input a valid $$ bid [" + time.Now().Local().Format(time.Stamp) + "]")
+						}
 					} else {
-						fmt.Println("please input a valid $$ bid")
+						fmt.Println("please input a valid $$ bid [" + time.Now().Local().Format(time.Stamp) + "]")
 					}
 				} else {
-					fmt.Println("please input a valid $$ bid")
+					fmt.Println("please input a valid $$ bid [" + time.Now().Local().Format(time.Stamp) + "]")
 				}
 			}
 
 			if len(input) >= 7 {
 				if strings.ToLower(input[0:]) == "status_" {
 
-					getStatus()
+					a.getStatus()
 				}
 			}
 		}
@@ -117,51 +118,48 @@ func readInput() {
 
 }
 
-func placeBid(bidA int32) {
+func (a *Aristocrat) placeBid(bidA int32) {
 
-	var stId, _ = strconv.ParseInt(string(*clientsName), 10, 32)
-	var myId = int32(stId)
-	fmt.Println(myId)
-	LTime++
 	bid := gRPC.BidAmount{
-		Id:       myId,
+		Id:       a.id,
 		Amount:   bidA,
-		Lamptime: LTime,
+		Lamptime: a.LampTime,
 	}
 
-	//Make gRPC call to server with amount, and recieve acknowlegdement back.
-	ack, err := server.Bid(context.Background(), &bid)
-	//ack, err := server.updateWinningBid(context.Background(), &bid)
+	//calls all serves and gets replies/errors
+	for idNeer, neer := range a.Auctioneers {
+		a.LampTime++
+		ack, err := neer.Bid(a.ctx, &bid)
+		if err != nil {
+			fmt.Println("Auctioneer " + fmt.Sprint(idNeer) + " says ERROR [" + time.Now().Local().Format(time.Stamp) + "]")
+			a.LampTime++
+		} else {
+			fmt.Println("Auctioneer " + strconv.Itoa(int(ack.Id)) + " says " + ack.Response + " [" + time.Now().Local().Format(time.Stamp) + "]")
+			a.LampTime++
+		}
 
-	if err != nil {
-		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
-		log.Println(err)
 	}
-	LTime += ack.LampTime + 1
-	//add output queue
-	fmt.Println("the server says " + ack.Response)
+
 }
 
-func getStatus() {
-	var stId, _ = strconv.ParseInt(string(*clientsName), 10, 32)
-	var myId = int32(stId)
-	fmt.Println(myId)
+func (a *Aristocrat) getStatus() {
 
-	LTime++
 	status := gRPC.Request{
-		Id:       myId,
-		Lamptime: LTime,
+		Id:       a.id,
+		Lamptime: a.LampTime,
 	}
-	ack, err := server.Message(context.Background(), &status)
-	if err != nil {
-		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
-		log.Println(err)
-	}
-	LTime += ack.LampTime + 1
-	//add output queue
-	fmt.Println(ack.Comment)
-}
 
-func conReady(s gRPC.CommClient) bool {
-	return ServerConn.GetState().String() == "READY"
+	for idNeer, neer := range a.Auctioneers {
+		a.LampTime++
+		ack, err := neer.Message(a.ctx, &status)
+		if err != nil {
+			fmt.Println("Auctioneer " + fmt.Sprint(idNeer) + " says ERROR [" + time.Now().Local().Format(time.Stamp) + "]")
+			a.LampTime++
+		} else {
+			fmt.Println("Auctioneer " + strconv.Itoa(int(ack.Id)) + " says " + ack.Comment + " [" + time.Now().Local().Format(time.Stamp) + "]")
+			a.LampTime++
+		}
+
+	}
+
 }
