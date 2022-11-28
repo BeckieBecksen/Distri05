@@ -11,14 +11,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/BeckieBecksen/Distri05/Auction"
 	gRPC "github.com/BeckieBecksen/Distri05/Auction"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
-// Same principle as in client. Flags allows for user specific arguments/values
+// Flags allows for user specific arguments/values
 var clientsName = flag.String("name", "5000", "Senders name")
-var serverPort = flag.String("server", "5400", "Tcp server")
 
 var server gRPC.CommClient      //the server
 var ServerConn *grpc.ClientConn //the server connection
@@ -33,42 +32,43 @@ func main() {
 	ConnectToServer()
 	defer ServerConn.Close()
 
-	readInput()
 }
 
 // connect to server
 func ConnectToServer() {
+	arg1, _ := strconv.ParseInt(os.Args[1], 10, 32)
 
-	//dial options
-	//the server is not using TLS, so we use insecure credentials
-	//(should be fine for local testing but not in the real world)
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-
-	//dial the server, with the flag "server", to get a connection to it
-	log.Printf("client %s: Attempts to dial on port %s\n", *clientsName, *serverPort)
-	conn, err := grpc.Dial(fmt.Sprintf(":%s", *serverPort), opts...)
-	if err != nil {
-		log.Printf("Fail to Dial : %v", err)
-		return
+	a := &Aristocrat{
+		id:          int32(arg1) + 5000,
+		Auctioneers: make(map[int32]gRPC.CommClient),
+		ctx:         context.Background(),
 	}
 
-	// makes a client from the server connection and saves the connection
-	// and prints rather or not the connection was is READY
+	for i := 0; i < 3; i++ {
+		port := int32(5400) + int32(i)
 
-	server = gRPC.NewCommClient(conn)
-	ServerConn = conn
-	log.Println("the connection is: ", conn.GetState().String())
+		var conn *grpc.ClientConn
+		fmt.Printf("Trying to dial: %v\n", port)
+		conn, err := grpc.Dial(fmt.Sprintf(":%v", port), grpc.WithInsecure(), grpc.WithBlock())
+		if err != nil {
+			log.Fatalf("Could not connect: %s", err)
+		}
+		defer conn.Close()
+		c := Auction.NewCommClient(conn)
+		a.Auctioneers[port] = c
+	}
+
+	a.readInput()
 }
 
 type Aristocrat struct {
 	gRPC.UnimplementedCommServer
-	id      int32
-	Servers map[int32]gRPC.CommClient
-	ctx     context.Context
+	id          int32
+	Auctioneers map[int32]gRPC.CommClient
+	ctx         context.Context
 }
 
-func readInput() {
+func (a *Aristocrat) readInput() {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Welcome to the Auction!, Today we have a mystery item for sale, how much $$$ will thee bid?")
 	fmt.Println("--------------------------------------------------------------------------------------------")
@@ -82,11 +82,6 @@ func readInput() {
 		}
 		input = strings.TrimSpace(input) //Trim input
 
-		if !conReady(server) {
-			log.Printf("Client %s: something was wrong with the connection to the server :(", *clientsName)
-			continue
-		}
-
 		if len(input) >= 4 {
 			if strings.ToLower(input[0:4]) == "bid_" {
 				//use re for bid method
@@ -96,7 +91,7 @@ func readInput() {
 					s1 := string(st[0])
 					num, err := strconv.ParseInt(s1, 10, 32)
 					if err == nil {
-						placeBid(int32(num))
+						a.placeBid(int32(num))
 					} else {
 						fmt.Println("please input a valid $$ bid")
 					}
@@ -108,7 +103,7 @@ func readInput() {
 			if len(input) >= 7 {
 				if strings.ToLower(input[0:]) == "status_" {
 
-					getStatus()
+					a.getStatus()
 				}
 			}
 		}
@@ -117,8 +112,7 @@ func readInput() {
 
 }
 
-func placeBid(bidA int32) {
-
+func (a *Aristocrat) placeBid(bidA int32) {
 	var stId, _ = strconv.ParseInt(string(*clientsName), 10, 32)
 	var myId = int32(stId)
 	fmt.Println(myId)
@@ -129,20 +123,30 @@ func placeBid(bidA int32) {
 		Lamptime: LTime,
 	}
 
-	//Make gRPC call to server with amount, and recieve acknowlegdement back.
-	ack, err := server.Bid(context.Background(), &bid)
-	//ack, err := server.updateWinningBid(context.Background(), &bid)
+	c := make(chan *gRPC.Reply)
 
-	if err != nil {
-		log.Printf("Client %s: no response from the server, attempting to reconnect", *clientsName)
-		log.Println(err)
+	//calls all serves and gets first reply
+	for id, neer := range a.Auctioneers {
+		//ack, err := server.Bid(a.ctx, &bid)
+		go checkResponse(a.ctx, &bid, c, neer)
+		fmt.Println(id)
 	}
-	LTime += ack.LampTime + 1
-	//add output queue
-	fmt.Println("the server says " + ack.Response)
+
+	firstresponse := <-c
+
+	LTime += firstresponse.LampTime + 1
+
+	fmt.Println("Auctioneer " + string(firstresponse.Id) + " says " + firstresponse.Response)
 }
 
-func getStatus() {
+func checkResponse(cx context.Context, b *gRPC.BidAmount, channel chan *gRPC.Reply, AuctioneerConn gRPC.CommClient) {
+	ack, _ := AuctioneerConn.Bid(cx, b)
+	if ack != nil {
+		channel <- ack
+	}
+}
+
+func (a *Aristocrat) getStatus() {
 	var stId, _ = strconv.ParseInt(string(*clientsName), 10, 32)
 	var myId = int32(stId)
 	fmt.Println(myId)

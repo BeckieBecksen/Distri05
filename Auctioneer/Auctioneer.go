@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"time"
 
@@ -18,8 +19,10 @@ var port = flag.String("port", "5400", "Server port") // set with "-port <port>"
 var LTime = int32(0)
 
 func main() {
+	arg1, _ := strconv.ParseInt(os.Args[1], 10, 32)
+	ownPort := int32(arg1) + 5400
 
-	list, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", *port))
+	list, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", ownPort))
 	if err != nil {
 		log.Printf("Server %s: Failed to listen on port %s: %v", *serverName, *port, err) //If it fails to listen on the port, run launchServer method again with the next value/port in ports array
 		return
