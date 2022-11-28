@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	gRPC "github.com/BeckieBecksen/Distri05/Auction"
 	"google.golang.org/grpc"
@@ -41,7 +42,9 @@ func ConnectToServer() {
 		ctx:         context.Background(),
 		LampTime:    0,
 	}
-	fmt.Print(a.id)
+
+	fmt.Println(a.id)
+
 	for i := 0; i < 3; i++ {
 		port := int32(5400) + int32(i)
 
@@ -93,13 +96,13 @@ func (a *Aristocrat) readInput() {
 						if num > 0 {
 							a.placeBid(int32(num))
 						} else {
-							fmt.Println("please input a valid $$ bid")
+							fmt.Println("please input a valid $$ bid [" + time.Now().Local().Format(time.Stamp) + "]")
 						}
 					} else {
-						fmt.Println("please input a valid $$ bid")
+						fmt.Println("please input a valid $$ bid [" + time.Now().Local().Format(time.Stamp) + "]")
 					}
 				} else {
-					fmt.Println("please input a valid $$ bid")
+					fmt.Println("please input a valid $$ bid [" + time.Now().Local().Format(time.Stamp) + "]")
 				}
 			}
 
@@ -116,58 +119,47 @@ func (a *Aristocrat) readInput() {
 }
 
 func (a *Aristocrat) placeBid(bidA int32) {
-	a.LampTime++
+
 	bid := gRPC.BidAmount{
 		Id:       a.id,
 		Amount:   bidA,
 		Lamptime: a.LampTime,
 	}
 
-	c := make(chan *gRPC.Reply)
+	//calls all serves and gets replies/errors
+	for idNeer, neer := range a.Auctioneers {
+		a.LampTime++
+		ack, err := neer.Bid(a.ctx, &bid)
+		if err != nil {
+			fmt.Println("Auctioneer " + fmt.Sprint(idNeer) + " says ERROR [" + time.Now().Local().Format(time.Stamp) + "]")
+			a.LampTime++
+		} else {
+			fmt.Println("Auctioneer " + strconv.Itoa(int(ack.Id)) + " says " + ack.Response + " [" + time.Now().Local().Format(time.Stamp) + "]")
+			a.LampTime++
+		}
 
-	//calls all serves and gets first reply
-	for _, neer := range a.Auctioneers {
-		go checkBidResponse(a.ctx, &bid, c, neer)
 	}
 
-	firstresponse := <-c
-
-	a.LampTime += firstresponse.LampTime + 1
-
-	fmt.Println("Auctioneer " + strconv.Itoa(int(firstresponse.Id)) + " says " + firstresponse.Response)
-}
-
-func checkBidResponse(cx context.Context, b *gRPC.BidAmount, channel chan *gRPC.Reply, AuctioneerConn gRPC.CommClient) {
-	ack, _ := AuctioneerConn.Bid(cx, b)
-	if ack != nil {
-		channel <- ack
-	}
-}
-
-func checkStatusResponse(cx context.Context, r *gRPC.Request, channel2 chan *gRPC.CurrentStatus, AuctioneerConn gRPC.CommClient) {
-	ack, _ := AuctioneerConn.Message(cx, r)
-	if ack != nil {
-		channel2 <- ack
-	}
 }
 
 func (a *Aristocrat) getStatus() {
-	var stId, _ = strconv.ParseInt(string(a.id), 10, 32)
-	var myId = int32(stId)
-	fmt.Println(myId)
-
-	cha := make(chan *gRPC.CurrentStatus)
 
 	status := gRPC.Request{
-		Id:       myId,
+		Id:       a.id,
 		Lamptime: a.LampTime,
 	}
 
-	for _, neer := range a.Auctioneers {
-		go checkStatusResponse(a.ctx, &status, cha, neer)
+	for idNeer, neer := range a.Auctioneers {
+		a.LampTime++
+		ack, err := neer.Message(a.ctx, &status)
+		if err != nil {
+			fmt.Println("Auctioneer " + fmt.Sprint(idNeer) + " says ERROR [" + time.Now().Local().Format(time.Stamp) + "]")
+			a.LampTime++
+		} else {
+			fmt.Println("Auctioneer " + strconv.Itoa(int(ack.Id)) + " says " + ack.Comment + " [" + time.Now().Local().Format(time.Stamp) + "]")
+			a.LampTime++
+		}
+
 	}
 
-	firstresp := <-cha
-	fmt.Println("Auctioneer " + strconv.Itoa(int(firstresp.Id)) + " says " + firstresp.Comment)
-	a.LampTime++
 }
