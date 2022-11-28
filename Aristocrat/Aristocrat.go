@@ -90,7 +90,11 @@ func (a *Aristocrat) readInput() {
 					s1 := string(st[0])
 					num, err := strconv.ParseInt(s1, 10, 32)
 					if err == nil {
-						a.placeBid(int32(num))
+						if num > 0 {
+							a.placeBid(int32(num))
+						} else {
+							fmt.Println("please input a valid $$ bid")
+						}
 					} else {
 						fmt.Println("please input a valid $$ bid")
 					}

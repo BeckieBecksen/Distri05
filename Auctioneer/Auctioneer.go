@@ -21,7 +21,6 @@ var LTime = int32(0)
 func main() {
 	arg1, _ := strconv.ParseInt(os.Args[1], 10, 32)
 	ownPort := int32(arg1) + 5400
-	fmt.Println(fmt.Sprint(ownPort) + "kkkkk")
 	list, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", ownPort))
 	if err != nil {
 		log.Printf("Server %s: Failed to listen on port %s: %v", *serverName, *port, err) //If it fails to listen on the port, run launchServer method again with the next value/port in ports array
@@ -41,10 +40,12 @@ func main() {
 	}
 
 	gRPC.RegisterCommServer(grpcServer, server) //Registers the server to the gRPC server.
+
+	fmt.Println("The Auction House has opened! I mr." + server.port + " Will be of your service [" + time.Now().Local().Format(time.Stamp) + ")")
+
 	if err := grpcServer.Serve(list); err != nil {
 		log.Fatalf("failed to serve %v", err)
 	}
-
 }
 
 type Server struct {
@@ -69,6 +70,7 @@ func AuctionEnd() {
 }
 
 func (s *Server) Bid(ctx context.Context, req *gRPC.BidAmount) (*gRPC.Reply, error) {
+	fmt.Println("I have recieved a bid from " + fmt.Sprint(req.Id) + " [" + time.Now().Local().Format(time.Stamp) + "]")
 	AuctioneerId, _ := strconv.ParseInt(s.port, 10, 32)
 	LTime += req.Lamptime + 1
 	if AuctionStatus {
@@ -76,20 +78,22 @@ func (s *Server) Bid(ctx context.Context, req *gRPC.BidAmount) (*gRPC.Reply, err
 			//first bidder starts the timer of 1 minute
 			AuctionStartTime()
 			s.WinningBidder[req.Id] = req.Amount
-			fmt.Println("Client %w's bid has been accepted", req.Id)
+			fmt.Print("The Auction has now begun! [" + time.Now().Local().Format(time.Stamp) + "]")
+			fmt.Println(fmt.Sprint(req.Id) + "'s bid of $" + fmt.Sprint(req.Amount) + " is the first and is accepted [" + time.Now().Local().Format(time.Stamp) + "]")
 			return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!", LampTime: LTime, Id: int32(AuctioneerId)}, nil
 		}
 		for el := range s.WinningBidder {
 			if s.WinningBidder[el] < req.Amount {
 				delete(s.WinningBidder, el)
 				s.WinningBidder[req.Id] = req.Amount
-				fmt.Println("Client %w's bid has been accepted", req.Id)
+				fmt.Println(fmt.Sprint(req.Id) + "'s bid of $" + fmt.Sprint(req.Amount) + " is accepted [" + time.Now().Local().Format(time.Stamp) + "]")
 				return &gRPC.Reply{Response: "Your bid was accepted, you are the leading bidder!", LampTime: LTime, Id: int32(AuctioneerId)}, nil
 			} else {
 				if el == req.Id {
+					fmt.Println(fmt.Sprint(req.Id) + "'s bid of $" + fmt.Sprint(req.Amount) + " has been denied, due to them already having the winning bid of $" + fmt.Sprint(s.WinningBidder[el]) + " [" + time.Now().Local().Format(time.Stamp) + "]")
 					return &gRPC.Reply{Response: "You have already have the highest bid! at at whopping $" + strconv.Itoa(int(s.WinningBidder[el])), LampTime: int32(s.LampTime), Id: int32(AuctioneerId)}, nil
 				}
-				fmt.Println("Client %w's bid has been denied", req.Id)
+				fmt.Println(fmt.Sprint(req.Id) + "'s bid of $" + fmt.Sprint(req.Amount) + " has been denied, due to another aristocrat already having the winning bid of $" + fmt.Sprint(s.WinningBidder[el]) + " [" + time.Now().Local().Format(time.Stamp) + "]")
 				return &gRPC.Reply{Response: "Your bid was rejected, another Aristocrat currently has a higher bid", LampTime: int32(s.LampTime), Id: int32(AuctioneerId)}, nil
 			}
 		}
