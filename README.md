@@ -3,12 +3,11 @@
 This is a distributed auction system that uses replication, and is resilient to single server failure.
 
 ## How to start the program
-
-To get an auction started, use the commandprompt to navigate to the /Auctioneer/ folder, then use "go run Auctioneer.go 0" to launch the first auctioneer.
-Repeat this with 2 other commandprompts and increase the number from 0 -> 1 and 1 -> 2 respectively.
+To get an auction started, use the terminal to navigate to the /Auctioneer/ folder, then use "go run Auctioneer.go 0" to launch the first auctioneer.
+Repeat this with 2 other terminals and increase the number by 1 for each of the terminals.
 
 Now you have your auctioneers ready for action, but no buyers. Navigate to the /Aristocrat/ folder, then use "go run Aristocrat.go 0" to launch the Aristocrat.
-you can repeat this to create more Aristocrats, but it's not necessary.
+you can repeat this while increasing the interger to create more Aristocrats, but it's not necessary.
 
 ## Commands
 The Auctioneers has no implemented commands, they simply stand around and wait for the Aristocrat(s) to make up their mind.
